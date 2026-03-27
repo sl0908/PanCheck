@@ -16,6 +16,7 @@ func GetClient() *http.Client {
 		transport := &http.Transport{
 			MaxIdleConns:        100,
 			MaxIdleConnsPerHost: 10,
+			Proxy:               http.ProxyFromEnvironment,
 			IdleConnTimeout:     90 * time.Second,
 			DisableCompression:  false,
 			DisableKeepAlives:   false,

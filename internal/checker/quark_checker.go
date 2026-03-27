@@ -203,6 +203,8 @@ func quarkDetailRequest(ctx context.Context, resourceID string, stoken string) (
 	params := url.Values{}
 	params.Set("pwd_id", resourceID)
 	params.Set("stoken", stoken)
+	params.Set("ver", "2")
+	params.Set("pr", "ucpro")
 	apiURL := baseURL + "?" + params.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
