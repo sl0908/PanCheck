@@ -8,6 +8,7 @@ import (
 	apphttp "PanCheck/pkg/http"
 	"PanCheck/pkg/validator"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -139,10 +140,15 @@ func (s *CheckerService) CheckRealtime(submissionID uint, links []string) (*mode
 	// 按平台分组
 	linksByPlatform := make(map[model.Platform][]string)
 	unknownLinks := make([]string, 0)
+	disabledPlatformLinks := make([]string, 0)
+	platformEnabledMap := s.loadPlatformEnabledMap()
 
 	for _, info := range linkInfos {
 		if info.Platform == model.PlatformUnknown {
 			unknownLinks = append(unknownLinks, info.Link)
+		} else if !platformEnabledMap[info.Platform] {
+			// 平台检测关闭时，跳过检测并默认判定为有效
+			disabledPlatformLinks = append(disabledPlatformLinks, info.Link)
 		} else {
 			linksByPlatform[info.Platform] = append(linksByPlatform[info.Platform], info.Link)
 		}
@@ -156,6 +162,7 @@ func (s *CheckerService) CheckRealtime(submissionID uint, links []string) (*mode
 	var mu sync.Mutex
 	validLinks := make([]string, 0)
 	invalidLinks := make([]model.InvalidLink, 0)
+	validLinks = append(validLinks, disabledPlatformLinks...)
 
 	// 检测已知平台的链接
 	for platform, platformLinks := range linksByPlatform {
@@ -357,13 +364,19 @@ func (s *CheckerService) CheckRealtimeWithPlatformFilter(submissionID uint, link
 	linksByPlatform := make(map[model.Platform][]string)
 	unknownLinks := make([]string, 0)
 	skippedLinks := make([]string, 0) // 未选中平台的链接
+	disabledPlatformLinks := make([]string, 0)
+	platformEnabledMap := s.loadPlatformEnabledMap()
 
 	for _, info := range linkInfos {
 		if info.Platform == model.PlatformUnknown {
 			unknownLinks = append(unknownLinks, info.Link)
 		} else if selectedPlatformMap[info.Platform] {
-			// 只处理选中的平台
-			linksByPlatform[info.Platform] = append(linksByPlatform[info.Platform], info.Link)
+			// 只处理选中的平台；若平台禁用则直接判定有效
+			if !platformEnabledMap[info.Platform] {
+				disabledPlatformLinks = append(disabledPlatformLinks, info.Link)
+			} else {
+				linksByPlatform[info.Platform] = append(linksByPlatform[info.Platform], info.Link)
+			}
 		} else {
 			// 未选中的平台链接，跳过检测
 			skippedLinks = append(skippedLinks, info.Link)
@@ -375,6 +388,7 @@ func (s *CheckerService) CheckRealtimeWithPlatformFilter(submissionID uint, link
 	var mu sync.Mutex
 	validLinks := make([]string, 0)
 	invalidLinks := make([]model.InvalidLink, 0)
+	validLinks = append(validLinks, disabledPlatformLinks...)
 
 	// 检测选中平台的链接
 	for platform, platformLinks := range linksByPlatform {
@@ -835,4 +849,33 @@ func getPlatformKeys(linksByPlatform map[model.Platform][]string) []string {
 		keys = append(keys, platform.String())
 	}
 	return keys
+}
+
+func (s *CheckerService) loadPlatformEnabledMap() map[model.Platform]bool {
+	enabledMap := make(map[model.Platform]bool)
+	// 默认全部启用
+	for _, platform := range model.AllPlatforms() {
+		enabledMap[platform] = true
+		key := fmt.Sprintf("platform_rate_config_%s", platform.String())
+		setting, err := s.settingsRepo.GetByKey(key)
+		if err != nil || setting == nil {
+			continue
+		}
+
+		var raw map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(setting.Value), &raw); err != nil {
+			continue
+		}
+		rawEnabled, ok := raw["enabled"]
+		if !ok {
+			continue
+		}
+
+		var enabled bool
+		if err := json.Unmarshal(rawEnabled, &enabled); err != nil {
+			continue
+		}
+		enabledMap[platform] = enabled
+	}
+	return enabledMap
 }

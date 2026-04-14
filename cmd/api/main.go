@@ -232,6 +232,7 @@ func initCheckers(factory *checker.CheckerFactory, checkerConfig config.CheckerC
 		}
 		// 返回默认配置
 		return &config.PlatformRateConfig{
+			Enabled:              true,
 			Concurrency:          defaultConcurrency,
 			RequestDelayMs:       0,
 			MaxRequestsPerSecond: 0,

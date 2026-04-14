@@ -111,6 +111,7 @@ func (h *SettingsHandler) GetRateConfigSettings(c *gin.Context) {
 
 	result := make(map[string]*config.PlatformRateConfig)
 	defaultConfig := &config.PlatformRateConfig{
+		Enabled:              true,
 		Concurrency:          5,
 		RequestDelayMs:       0,
 		MaxRequestsPerSecond: 0,
@@ -123,6 +124,10 @@ func (h *SettingsHandler) GetRateConfigSettings(c *gin.Context) {
 		if err == nil && setting != nil {
 			var rateConfig config.PlatformRateConfig
 			if err := json.Unmarshal([]byte(setting.Value), &rateConfig); err == nil {
+				// 历史配置兼容：旧数据没有 enabled 字段时默认为启用
+				if !jsonContainsEnabledField(setting.Value) {
+					rateConfig.Enabled = true
+				}
 				result[platform] = &rateConfig
 				continue
 			}
@@ -226,6 +231,15 @@ func (h *SettingsHandler) UpdateRateConfigSettings(c *gin.Context) {
 		"message": "保存成功，配置已立即生效",
 		"data":    updated,
 	})
+}
+
+func jsonContainsEnabledField(settingValue string) bool {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(settingValue), &raw); err != nil {
+		return false
+	}
+	_, ok := raw["enabled"]
+	return ok
 }
 
 // GetRedisConfig 获取Redis配置

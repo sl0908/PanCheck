@@ -34,10 +34,11 @@ type CheckerConfig struct {
 
 // PlatformRateConfig 平台频率控制配置
 type PlatformRateConfig struct {
-	Concurrency          int `json:"concurrency"`             // 并发数
-	RequestDelayMs       int `json:"request_delay_ms"`        // 请求间隔（毫秒）
-	MaxRequestsPerSecond int `json:"max_requests_per_second"` // 每秒最大请求数（0表示不限制）
-	CacheTTLHours        int `json:"cache_ttl_hours"`         // 有效链接缓存过期时间（小时）
+	Enabled              bool `json:"enabled"`                 // 是否启用该平台检测
+	Concurrency          int  `json:"concurrency"`             // 并发数
+	RequestDelayMs       int  `json:"request_delay_ms"`        // 请求间隔（毫秒）
+	MaxRequestsPerSecond int  `json:"max_requests_per_second"` // 每秒最大请求数（0表示不限制）
+	CacheTTLHours        int  `json:"cache_ttl_hours"`         // 有效链接缓存过期时间（小时）
 }
 
 // RedisConfig Redis配置

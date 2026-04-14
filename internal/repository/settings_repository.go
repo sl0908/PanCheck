@@ -3,6 +3,9 @@ package repository
 import (
 	"PanCheck/internal/model"
 	"PanCheck/pkg/database"
+	"errors"
+
+	"gorm.io/gorm"
 )
 
 // SettingsRepository 设置仓库
@@ -16,7 +19,7 @@ func NewSettingsRepository() *SettingsRepository {
 // GetByKey 根据key获取设置
 func (r *SettingsRepository) GetByKey(key string) (*model.Setting, error) {
 	var setting model.Setting
-	err := database.DB.Where("`key` = ?", key).First(&setting).Error
+	err := database.DB.Where("key = ?", key).First(&setting).Error
 	if err != nil {
 		return nil, err
 	}
@@ -26,9 +29,12 @@ func (r *SettingsRepository) GetByKey(key string) (*model.Setting, error) {
 // GetOrCreate 获取或创建设置
 func (r *SettingsRepository) GetOrCreate(key, value, description, category string) (*model.Setting, error) {
 	var setting model.Setting
-	err := database.DB.Where("`key` = ?", key).First(&setting).Error
+	err := database.DB.Where("key = ?", key).First(&setting).Error
 
 	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
 		// 不存在，创建新记录
 		setting = model.Setting{
 			Key:         key,
@@ -49,9 +55,12 @@ func (r *SettingsRepository) GetOrCreate(key, value, description, category strin
 // Update 更新设置（如果不存在则创建）
 func (r *SettingsRepository) Update(setting *model.Setting) error {
 	var existing model.Setting
-	err := database.DB.Where("`key` = ?", setting.Key).First(&existing).Error
+	err := database.DB.Where("key = ?", setting.Key).First(&existing).Error
 
 	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
 		// 不存在，创建新记录
 		return database.DB.Create(setting).Error
 	}
@@ -70,7 +79,7 @@ func (r *SettingsRepository) Update(setting *model.Setting) error {
 // GetByCategory 根据分类获取设置列表
 func (r *SettingsRepository) GetByCategory(category string) ([]model.Setting, error) {
 	var settings []model.Setting
-	err := database.DB.Where("`category` = ?", category).Find(&settings).Error
+	err := database.DB.Where("category = ?", category).Find(&settings).Error
 	return settings, err
 }
 

@@ -1,6 +1,7 @@
 import { api } from './authApi';
 
 export interface PlatformRateConfig {
+  enabled: boolean;
   concurrency: number;
   request_delay_ms: number;
   max_requests_per_second: number;

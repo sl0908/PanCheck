@@ -109,6 +109,7 @@ export function Settings() {
   const platforms = ['quark', 'uc', 'baidu', 'tianyi', 'pan123', 'pan115', 'aliyun', 'xunlei', 'cmcc'];
 
   const defaultRateConfig: PlatformRateConfig = {
+    enabled: true,
     concurrency: 5,
     request_delay_ms: 0,
     max_requests_per_second: 0,
@@ -242,6 +243,17 @@ export function Settings() {
                         </div>
                         
                         <div className="space-y-3">
+                          <div className="flex items-center justify-between rounded-md border p-2">
+                            <Label htmlFor={`${platform}-enabled`} className="text-sm">
+                              是否启用检测
+                            </Label>
+                            <Switch
+                              id={`${platform}-enabled`}
+                              checked={config.enabled ?? true}
+                              onCheckedChange={(checked) => updateRateConfig(platform, 'enabled', checked)}
+                            />
+                          </div>
+
                           <div className="space-y-1.5">
                             <Label htmlFor={`${platform}-concurrency`} className="text-sm">
                               并发数
@@ -254,6 +266,7 @@ export function Settings() {
                               value={config.concurrency}
                               onChange={(e) => updateRateConfig(platform, 'concurrency', parseInt(e.target.value) || 1)}
                               className="h-9"
+                              disabled={!config.enabled}
                             />
                             <p className="text-xs text-muted-foreground">同时检测的链接数量（1-100）</p>
                           </div>
@@ -270,6 +283,7 @@ export function Settings() {
                               value={config.request_delay_ms}
                               onChange={(e) => updateRateConfig(platform, 'request_delay_ms', parseInt(e.target.value) || 0)}
                               className="h-9"
+                              disabled={!config.enabled}
                             />
                             <p className="text-xs text-muted-foreground">每次请求之间的间隔</p>
                           </div>
@@ -286,6 +300,7 @@ export function Settings() {
                               value={config.max_requests_per_second}
                               onChange={(e) => updateRateConfig(platform, 'max_requests_per_second', parseInt(e.target.value) || 0)}
                               className="h-9"
+                              disabled={!config.enabled}
                             />
                             <p className="text-xs text-muted-foreground">0表示不限制</p>
                           </div>
@@ -302,6 +317,7 @@ export function Settings() {
                               value={config.cache_ttl_hours ?? 24}
                               onChange={(e) => updateRateConfig(platform, 'cache_ttl_hours', parseInt(e.target.value) || 24)}
                               className="h-9"
+                              disabled={!config.enabled}
                             />
                             <p className="text-xs text-muted-foreground">有效链接的缓存过期时间（0-720小时，默认24小时）</p>
                           </div>
