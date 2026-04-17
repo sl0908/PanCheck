@@ -71,6 +71,25 @@ func (c *Pan115Checker) Check(link string) (*CheckResult, error) {
 	}
 
 	if response.State && response.Errno == 0 {
+		shareState := response.Data.ShareState
+		if shareState == 0 {
+			// 兼容部分响应只在 shareinfo 中返回 share_state
+			shareState = response.Data.ShareInfo.ShareState
+		}
+
+		// 仅 share_state=1 视为有效，其余都判定为无效
+		if shareState != 1 {
+			failureReason := strings.TrimSpace(response.Data.ShareInfo.ForbidReason)
+			if failureReason == "" {
+				failureReason = fmt.Sprintf("链接状态异常(share_state=%d)", shareState)
+			}
+			return &CheckResult{
+				Valid:         false,
+				FailureReason: failureReason,
+				Duration:      duration,
+			}, nil
+		}
+
 		return &CheckResult{
 			Valid:         true,
 			FailureReason: "",
@@ -90,6 +109,13 @@ type pan115Resp struct {
 	State bool   `json:"state"`
 	Error string `json:"error"`
 	Errno int    `json:"errno"`
+	Data  struct {
+		ShareState int `json:"share_state"`
+		ShareInfo  struct {
+			ShareState   int    `json:"share_state"`
+			ForbidReason string `json:"forbid_reason"`
+		} `json:"shareinfo"`
+	} `json:"data"`
 }
 
 // pan115Request 发起请求
